@@ -270,18 +270,19 @@ function showResults(errors){
   if(results.length)$('#results').scrollIntoView({behavior:'smooth'});
 }
 const nameOf=id=>{let n=document.querySelector(`[data-name="${id}"]`).value.trim()||'edited';return /\.pdf$/i.test(n)?n:n+'.pdf'};
+const track=(name,data)=>{try{window.va&&window.va('event',{name,data})}catch{}};  // Vercel Analytics custom event (no personal data sent)
 function save(url,name){const a=document.createElement('a');a.href=url;a.download=name;a.click()}
 $('#list').onclick=e=>{
   const v=e.target.closest('[data-v]'),d=e.target.closest('[data-d]');
   if(v)view(results[v.dataset.v].url,nameOf(v.dataset.v));
-  if(d)save(results[d.dataset.d].url,nameOf(d.dataset.d));
+  if(d){save(results[d.dataset.d].url,nameOf(d.dataset.d));track('Download',{type:'single'})}
 };
 $('#zip').onclick=async()=>{
   const btn=$('#zip');btn.disabled=true;btn.textContent='Zipping…';
   await call('zip_start',[]);const used=new Set();
   for(const r of results)await call('zip_add',[unique(safeName(nameOf(r.id)),used),r.bytes.slice()]);
   const zip=await call('zip_finish',[]);
-  const url=URL.createObjectURL(new Blob([zip],{type:'application/zip'}));save(url,'edited_pdfs.zip');
+  const url=URL.createObjectURL(new Blob([zip],{type:'application/zip'}));save(url,'edited_pdfs.zip');track('Download',{type:'zip',files:results.length});
   btn.disabled=false;btn.textContent='⬇ Download all (.zip)';
 };
 update();
